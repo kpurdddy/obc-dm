@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dan's Meltdown - OB Clark's Kitchen</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1a1a2e;
+  font-family: sans-serif;
+  color: #ffffff;
+  touch-action: manipulation;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.title-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.title-main {
+  font-size: 10vw;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-bottom: 2vh;
+}
+
+.title-sub {
+  font-size: 4vw;
+  color: #aaaaaa;
+  margin-bottom: 6vh;
+}
+
+.title-btn {
+  font-size: 5vw;
+  padding: 2vh 6vw;
+  background: #c44e28;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+.title-version {
+  position: absolute;
+  bottom: 2vh;
+  right: 3vw;
+  font-size: 2.5vw;
+  color: #666666;
+  font-family: monospace;
+}
+
+/* HUD */
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6vh;
+  display: flex;
+  align-items: center;
+  padding: 0 2vw;
+  z-index: 80;
+}
+
+.meltdown-bar-bg {
+  flex: 1;
+  height: 3vh;
+  background: #333333;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-right: 3vw;
+}
+
+.meltdown-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.1s linear;
+  background: linear-gradient(to right, #ff6600, #ff0000);
+}
+
+.meltdown-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.8vh;
+  font-weight: bold;
+  font-family: monospace;
+  text-shadow: 1px 1px 2px #000000;
+  pointer-events: none;
+}
+
+.hud-score {
+  font-size: 3vh;
+  font-weight: bold;
+  margin-right: 3vw;
+  min-width: 10vw;
+  text-align: center;
+  font-family: monospace;
+}
+
+.hud-clock {
+  font-size: 3vh;
+  font-weight: bold;
+  font-family: monospace;
+  min-width: 12vw;
+  text-align: right;
+}
+
+/* Main game area */
+.game-area {
+  position: absolute;
+  top: 6vh;
+  left: 0;
+  width: 100%;
+  height: 94vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ticket rail -- horizontal */
+.ticket-rail {
+  width: 100%;
+  height: 10vh;
+  padding: 0.5vh 1vw;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  z-index: 20;
+  display: flex;
+  flex-direction: row;
+  gap: 1.5vw;
+  align-items: stretch;
+}
+
+.ticket-card {
+  background: #f0e6d3;
+  color: #333333;
+  border-radius: 4px;
+  padding: 0.8vh 1.5vw;
+  font-size: 1.6vh;
+  font-family: monospace;
+  min-width: 22vw;
+  flex-shrink: 0;
+}
+
+.ticket-card-highlight {
+  border: 2px solid #22ff22;
+  animation: ticket-pulse 0.8s infinite;
+}
+
+@keyframes ticket-pulse {
+  0%, 100% { border-color: #22ff22; }
+  50% { border-color: #116611; }
+}
+
+.ticket-card-header {
+  font-weight: bold;
+  font-size: 1.4vh;
+  border-bottom: 1px solid #ccccaa;
+  padding-bottom: 0.3vh;
+  margin-bottom: 0.5vh;
+}
+
+.ticket-item {
+  padding: 0.2vh 0;
+}
+
+.ticket-item-waiting {
+  color: #666666;
+}
+
+.ticket-item-cooking {
+  color: #c44e28;
+  font-weight: bold;
+}
+
+.ticket-item-ready {
+  color: #22aa22;
+  font-weight: bold;
+}
+
+.ticket-item-plated {
+  color: #2266cc;
+  text-decoration: line-through;
+}
+
+.ticket-item-burned {
+  color: #ff3333;
+  font-weight: bold;
+}
+
+/* Kitchen area */
+.kitchen-area {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+/* Counter (L-shaped) */
+.corridor-horizontal {
+  position: absolute;
+  background: #555544;
+  border-top: 2px solid #888866;
+  border-radius: 3px;
+  z-index: 5;
+}
+
+.corridor-vertical {
+  position: absolute;
+  background: #555544;
+  border-left: 2px solid #888866;
+  border-radius: 3px;
+  z-index: 5;
+}
+
+/* Shelf / pass */
+.shelf-area {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vh;
+}
+
+.shelf-strip {
+  background: #888888;
+  border-radius: 3px;
+  height: 3.5vh;
+  display: flex;
+  align-items: center;
+  padding: 0 1vw;
+  gap: 1vw;
+  overflow: hidden;
+}
+
+.shelf-lamp {
+  color: #ffaa00;
+  font-size: 1.8vh;
+  font-weight: bold;
+}
+
+.shelf-item {
+  font-size: 1.6vh;
+  background: #aaaaaa;
+  color: #222222;
+  padding: 0.2vh 0.6vw;
+  border-radius: 2px;
+  font-family: monospace;
+}
+
+.shelf-item-spec {
+  font-size: 1.6vh;
+  background: #8888aa;
+  color: #222222;
+  padding: 0.2vh 0.6vw;
+  border-radius: 2px;
+  font-family: monospace;
+}
+
+/* Stations */
+.station {
+  position: absolute;
+  z-index: 20;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.3s;
+  border: 3px solid transparent;
+}
+
+.station-name {
+  font-size: 1.8vh;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000000;
+}
+
+.station-status {
+  font-size: 2.5vh;
+  font-weight: bold;
+  font-family: monospace;
+  text-shadow: 1px 1px 2px #000000;
+  margin-top: 0.5vh;
+}
+
+.station-empty {
+  border-color: transparent;
+}
+
+.station-cooking {
+  animation: pulse-border 1s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(255, 255, 255, 0.3); }
+  50% { border-color: rgba(255, 255, 255, 0.8); }
+}
+
+.station-ready {
+  border-color: #22ff22;
+  animation: flash-ready 0.5s infinite;
+}
+
+@keyframes flash-ready {
+  0%, 100% { border-color: #22ff22; }
+  50% { border-color: #116611; }
+}
+
+.station-burned {
+  background: #661111 !important;
+  border-color: #ff3333;
+}
+
+/* Dan token */
+.dan-token {
+  position: absolute;
+  z-index: 50;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6vh;
+  font-weight: bold;
+  color: #1a1a2e;
+  pointer-events: none;
+}
+
+/* Meltdown flash overlay */
+.meltdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  pointer-events: none;
+  border: 8px solid #ff0000;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.meltdown-overlay-active {
+  opacity: 1;
+  animation: meltdown-flash 0.5s ease-out;
+}
+
+@keyframes meltdown-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+.meltdown-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12vw;
+  font-weight: bold;
+  color: #ff3333;
+  z-index: 101;
+  pointer-events: none;
+  animation: meltdown-text-fade 1.5s forwards;
+  text-shadow: 3px 3px 6px #000000;
+}
+
+@keyframes meltdown-text-fade {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* Shift end screen */
+.shift-end-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 4vh 4vw;
+}
+
+.shift-end-title {
+  font-size: 8vw;
+  font-weight: bold;
+  margin-bottom: 4vh;
+}
+
+.shift-end-stats {
+  font-size: 3.5vw;
+  font-family: monospace;
+  line-height: 2;
+  text-align: left;
+  margin-bottom: 4vh;
+}
+
+.shift-end-score {
+  font-size: 7vw;
+  font-weight: bold;
+  color: #ffcc00;
+  margin-bottom: 4vh;
+}
+
+.shift-end-btn {
+  font-size: 5vw;
+  padding: 2vh 6vw;
+  background: #c44e28;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+/* Interaction Panel */
+.interaction-panel {
+  position: absolute;
+  z-index: 30;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  min-height: 16%;
+  background: #1e1e2e;
+  border-top: 3px solid #444466;
+  padding: 1vh 2vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1vh;
+}
+
+.panel-station-name {
+  font-size: 2.8vh;
+  font-weight: bold;
+  color: #ffcc00;
+  font-family: monospace;
+  letter-spacing: 0.1em;
+  width: 100%;
+  text-align: center;
+}
+
+.panel-btn {
+  background: #444466;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 1.8vh 3.5vw;
+  font-size: 2.4vh;
+  font-weight: bold;
+  font-family: monospace;
+  cursor: pointer;
+  min-width: 14vw;
+  text-align: center;
+}
+
+.panel-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2vh 2vw;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.panel-btn-active {
+  background: #6666aa;
+}
+
+.panel-btn-plate {
+  background: #27ae60;
+  color: #ffffff;
+}
+
+.panel-btn-plate-big {
+  background: #22aa44;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 2.5vh 6vw;
+  font-size: 3.2vh;
+  font-weight: bold;
+  font-family: monospace;
+  cursor: pointer;
+  min-width: 40vw;
+  text-align: center;
+  animation: pulse-plate 0.8s infinite;
+}
+
+@keyframes pulse-plate {
+  0%, 100% { background: #22aa44; }
+  50% { background: #33cc55; }
+}
+
+.panel-btn-flash {
+  background: #ffcc00;
+  color: #000000;
+  animation: flash-action 0.3s infinite;
+}
+
+@keyframes flash-action {
+  0%, 100% { background: #ffcc00; }
+  50% { background: #cc9900; }
+}
+
+.panel-btn-cancel {
+  background: #aa3333;
+  color: #ffffff;
+}
+
+.panel-btn-season {
+  background: #ff8800;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 2.2vh 5vw;
+  font-size: 2.8vh;
+  font-weight: bold;
+  font-family: monospace;
+  cursor: pointer;
+  min-width: 35vw;
+  text-align: center;
+  animation: pulse-season 0.6s infinite;
+}
+
+@keyframes pulse-season {
+  0%, 100% { background: #ff8800; }
+  50% { background: #ffaa33; }
+}
+
+.panel-btn-bowl {
+  background: #22ff22;
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  padding: 2.2vh 5vw;
+  font-size: 2.8vh;
+  font-weight: bold;
+  font-family: monospace;
+  cursor: pointer;
+  min-width: 35vw;
+  text-align: center;
+  animation: pulse-bowl 0.8s infinite;
+}
+
+@keyframes pulse-bowl {
+  0%, 100% { background: #22ff22; }
+  50% { background: #44ff66; }
+}
+
+.panel-info {
+  font-size: 2vh;
+  color: #aaaaaa;
+  font-family: monospace;
+  text-align: center;
+  padding: 0 1vw;
+}
+
+.panel-info-bright {
+  font-size: 2.4vh;
+  color: #ffffff;
+  font-family: monospace;
+  font-weight: bold;
+  text-align: center;
+  width: 100%;
+}
+
+/* Pizza recipe */
+.pizza-recipe {
+  font-size: 2vh;
+  font-weight: bold;
+  font-family: monospace;
+  color: #ffffff;
+  text-align: center;
+  width: 100%;
+  padding: 0.5vh 0;
+}
+
+.pizza-recipe-step {
+  color: #666666;
+}
+
+.pizza-recipe-step-current {
+  color: #ffcc00;
+  text-decoration: underline;
+}
+
+.pizza-recipe-step-done {
+  color: #22aa44;
+}
+
+/* Holding Bowl */
+.holding-bowl {
+  position: absolute;
+  z-index: 25;
+  background: #3a3a2a;
+  border: 2px solid #555544;
+  border-radius: 4px;
+  padding: 0.8vh 1.5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3vh;
+}
+
+.bowl-label {
+  font-size: 1.8vh;
+  font-weight: bold;
+  color: #ffcc00;
+  font-family: monospace;
+}
+
+.bowl-servings {
+  display: flex;
+  gap: 0.5vw;
+}
+
+.bowl-srv-fresh {
+  width: 2.2vh;
+  height: 2.2vh;
+  background: #ffdd44;
+  border-radius: 2px;
+}
+
+.bowl-srv-stale {
+  width: 2.2vh;
+  height: 2.2vh;
+  background: #666666;
+  border-radius: 2px;
+  border: 1px solid #ff6666;
+}
+
+.bowl-timer {
+  font-size: 1.4vh;
+  color: #aaaaaa;
+  font-family: monospace;
+}
+
+.spec-badge {
+  color: #ffcc00;
+  font-weight: bold;
+  font-size: 1.5vh;
+}
+
+.bowl-full-flash {
+  position: absolute;
+  z-index: 90;
+  background: #cc6600;
+  color: #ffffff;
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 2vh;
+  padding: 0.5vh 2vw;
+  border-radius: 4px;
+  animation: bowl-full-fade 1.5s forwards;
+}
+
+@keyframes bowl-full-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+var VERSION = "0.2.1";
+
+/* ===== STATION CONFIGS (data-driven, with renderCoords) ===== */
+var STATION_CONFIGS = {
+  fryers: {
+    id: "fryers", name: "FRYERS", position: 0, color: "#c49a28",
+    items: ["Fries", "Mushrooms", "Green Beans", "Wings"],
+    burnWindow: 6000, cleanupTime: 1000,
+    renderCoords: { x: 18, y: 14, w: 18, h: 14 }
+  },
+  grill: {
+    id: "grill", name: "GRILL", position: 1, color: "#6b4226",
+    items: ["Burger", "Grouper Sandwich"],
+    burnWindow: 8000, cleanupTime: 1000,
+    renderCoords: { x: 48, y: 14, w: 18, h: 14 }
+  },
+  pizzaOven: {
+    id: "pizzaOven", name: "OVEN", position: 2, color: "#c44e28",
+    items: [],
+    burnWindow: 10000, cleanupTime: 1000,
+    renderCoords: { x: 78, y: 14, w: 18, h: 14 }
+  },
+  pizzaPrep: {
+    id: "pizzaPrep", name: "PIZZA PREP", position: 3, color: "#c44e28",
+    type: "prep",
+    renderCoords: { x: 64, y: 58, w: 16, h: 11 }
+  },
+  saladPrep: {
+    id: "saladPrep", name: "SALAD", position: 4, color: "#555555",
+    type: "future",
+    renderCoords: { x: 64, y: 76, w: 16, h: 11 }
+  }
+};
+
+/* ===== MENU ITEMS (data-driven) ===== */
+var MENU_ITEMS = {
+  "Cheese Pizza": {
+    station: "pizzaPrep", cookStation: "pizzaOven", cookTime: 15000,
+    prepAction: "toppingSequence", toppings: ["DOUGH", "SAUCE", "CHEESE"],
+    midCookAction: null, displayName: "CHEESE PIZZA", buttonLabel: "CHEESE"
+  },
+  "Pepperoni Pizza": {
+    station: "pizzaPrep", cookStation: "pizzaOven", cookTime: 15000,
+    prepAction: "toppingSequence", toppings: ["DOUGH", "SAUCE", "CHEESE", "PEPPERONI"],
+    midCookAction: null, displayName: "PEPP PIZZA", buttonLabel: "PEPP"
+  },
+  "Burger": {
+    station: "grill", cookTime: 10000,
+    midCookAction: "flip", midCookWindowMs: 2000, prepAction: null,
+    displayName: "BURGER", buttonLabel: "BURGER"
+  },
+  "Grouper Sandwich": {
+    station: "grill", cookTime: 12000,
+    midCookAction: null, prepAction: "season",
+    displayName: "GROUPER", buttonLabel: "GROUPER"
+  },
+  "Fries": {
+    station: "fryers", cookTime: 5000,
+    midCookAction: "shake", midCookWindowMs: 2000, prepAction: null,
+    displayName: "FRIES", buttonLabel: "FRIES", batchable: true
+  },
+  "Mushrooms": {
+    station: "fryers", cookTime: 6000,
+    midCookAction: "shake", midCookWindowMs: 2000, prepAction: null,
+    displayName: "SHROOMS", buttonLabel: "SHROOMS"
+  },
+  "Green Beans": {
+    station: "fryers", cookTime: 5000,
+    midCookAction: "shake", midCookWindowMs: 2000, prepAction: null,
+    displayName: "G. BEANS", buttonLabel: "G. BEANS"
+  },
+  "Wings": {
+    station: "fryers", cookTime: 8000,
+    midCookAction: "shake", midCookWindowMs: 2000, prepAction: null,
+    displayName: "WINGS", buttonLabel: "WINGS"
+  }
+};
+
+/* ===== PIZZA TOPPINGS (placeholder -- update with real OBC toppings) ===== */
+var PIZZA_TOPPINGS = ["DOUGH", "SAUCE", "CHEESE", "PEPPERONI", "MUSHROOMS", "GREEN PEPPERS"];
+
+/* ===== TICKET TEMPLATES (weighted) ===== */
+var TICKET_TEMPLATES = [
+  { items: ["Cheese Pizza"], weight: 10 },
+  { items: ["Pepperoni Pizza"], weight: 12 },
+  { items: ["Burger"], weight: 10 },
+  { items: ["Grouper Sandwich"], weight: 5 },
+  { items: ["Fries"], weight: 8 },
+  { items: ["Wings"], weight: 5 },
+  { items: ["Burger", "Fries"], weight: 18 },
+  { items: ["Grouper Sandwich", "Fries"], weight: 5 },
+  { items: ["Pepperoni Pizza", "Fries"], weight: 8 },
+  { items: ["Wings", "Fries"], weight: 7 },
+  { items: ["Burger", "Mushrooms"], weight: 7 },
+  { items: ["Burger", "Green Beans"], weight: 5 }
+];
+
+var TOTAL_WEIGHT = 0;
+(function() {
+  var i;
+  for (i = 0; i < TICKET_TEMPLATES.length; i++) {
+    TOTAL_WEIGHT += TICKET_TEMPLATES[i].weight;
+  }
+})();
+
+/* ===== RUSH ARC PHASES ===== */
+var RUSH_PHASES = [
+  { start: 0, end: 60000, minInterval: 12000, maxInterval: 18000 },
+  { start: 60000, end: 180000, minInterval: 7000, maxInterval: 12000 },
+  { start: 180000, end: 240000, minInterval: 4000, maxInterval: 7000 },
+  { start: 240000, end: 300000, minInterval: 9000, maxInterval: 14000 }
+];
+
+var SHIFT_DURATION = 300000;
+var MOVE_SPEED_NORMAL = 400;
+var MOVE_SPEED_MELTDOWN = 600;
+var MELTDOWN_RECOVERY_TIME = 5000;
+var MELTDOWN_METER_RESET = 60;
+var MELTDOWN_SPIKE_BURN = 15;
+var MELTDOWN_SPIKE_VOID = 10;
+var MELTDOWN_SPIKE_WRONG_TOPPING = 8;
+var MELTDOWN_SPIKE_MISSED_ACTION = 5;
+var MELTDOWN_DECAY_PER_SEC = 1.5;
+var BOWL_MAX = 6;
+var BOWL_FRESH_MS = 8000;
+var BOWL_STALE_MS = 5000;
+var SHELF_FRESH_MS = 15000;
+var CANCEL_MS = 2000;
+var MID_COOK_WIN = 2000;
+var DEBOUNCE_MS = 200;
+
+/* ===== POSITION COORDINATES (Dan's walking path) ===== */
+var POSITION_COORDS = [
+  { x: 18, y: 38 },   /* pos 0: in front of fryers */
+  { x: 48, y: 38 },   /* pos 1: in front of grill */
+  { x: 78, y: 38 },   /* pos 2: in front of pizza oven (L corner) */
+  { x: 78, y: 62 },   /* pos 3: at pizza prep on counter */
+  { x: 78, y: 80 }    /* pos 4: at salad prep on counter */
+];
+
+/* ===== HELPERS ===== */
+
+function getRushPhase(elapsedMs) {
+  var i;
+  for (i = 0; i < RUSH_PHASES.length; i++) {
+    if (elapsedMs >= RUSH_PHASES[i].start && elapsedMs < RUSH_PHASES[i].end) return RUSH_PHASES[i];
+  }
+  return RUSH_PHASES[RUSH_PHASES.length - 1];
+}
+
+function randomInRange(min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function pickWeightedTemplate() {
+  var roll = Math.random() * TOTAL_WEIGHT;
+  var cumulative = 0;
+  var i;
+  for (i = 0; i < TICKET_TEMPLATES.length; i++) {
+    cumulative += TICKET_TEMPLATES[i].weight;
+    if (roll < cumulative) return TICKET_TEMPLATES[i];
+  }
+  return TICKET_TEMPLATES[TICKET_TEMPLATES.length - 1];
+}
+
+function generateTicket(state) {
+  var template = pickWeightedTemplate();
+  var ticketId = state.ticketIdCounter;
+  var itemIdStart = state.itemIdCounter;
+  var items = [];
+  var i;
+  for (i = 0; i < template.items.length; i++) {
+    var itemName = template.items[i];
+    items.push({ id: itemIdStart + i, name: itemName, station: MENU_ITEMS[itemName].station, state: "waiting" });
+  }
+  return {
+    ticket: { id: ticketId, source: "auto", items: items, age: 0, clearedAt: null },
+    nextTicketId: ticketId + 1, nextItemId: itemIdStart + template.items.length
+  };
+}
+
+function getNextSpawnInterval(elapsedMs) {
+  var phase = getRushPhase(elapsedMs);
+  return randomInRange(phase.minInterval, phase.maxInterval);
+}
+
+function clamp(val, min, max) { if (val < min) return min; if (val > max) return max; return val; }
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+function getStationIdByPosition(pos) {
+  var keys = Object.keys(STATION_CONFIGS);
+  var i;
+  for (i = 0; i < keys.length; i++) { if (STATION_CONFIGS[keys[i]].position === pos) return keys[i]; }
+  return null;
+}
+
+function getDisplayName(itemName) {
+  return MENU_ITEMS[itemName] ? MENU_ITEMS[itemName].displayName : itemName;
+}
+
+/* ===== INITIAL STATE ===== */
+
+function createInitialState() {
+  return {
+    phase: "TITLE",
+    dan: { position: 1, targetPosition: 1, moving: false, moveProgress: 0, currentSegmentFrom: 1, currentSegmentTo: 1, meltdownActive: false },
+    stations: {
+      fryers: { position: 0, slots: [null], cleaning: false },
+      grill: { position: 1, slots: [null], cleaning: false },
+      pizzaOven: { position: 2, slots: [null], cleaning: false },
+      pizzaPrep: { position: 3, type: "prep", currentPrep: null, cancelTimer: 0 },
+      saladPrep: { position: 4, type: "future" }
+    },
+    holdingBowl: { servings: [], maxServings: BOWL_MAX },
+    speculative: { shelfItems: [] },
+    tickets: [], shelf: [], outbound: [],
+    meltdown: { meter: 0, threshold: 100, recovering: false, recoveryRemaining: 0, count: 0 },
+    shiftClock: SHIFT_DURATION, score: 0, ticketsCleared: 0, ticketsBurned: 0,
+    voidCount: 0, staleServings: 0, speculativeMatches: 0,
+    nextTicketIn: 3000, ticketIdCounter: 0, itemIdCounter: 0,
+    meltdownFlash: false, shiftEndDelay: 0, pendingFryBatch: false, bowlFullFlash: false
+  };
+}
+
+/* ===== GAME LOGIC HELPERS ===== */
+
+function findWaitingByName(tickets, itemName) {
+  var i, j;
+  for (i = 0; i < tickets.length; i++) {
+    for (j = 0; j < tickets[i].items.length; j++) {
+      if (tickets[i].items[j].name === itemName && tickets[i].items[j].state === "waiting") return { ti: i, ii: j };
+    }
+  }
+  return null;
+}
+
+function checkAndClearTickets(st) {
+  var toRemove = [];
+  var ti, ii;
+  for (ti = 0; ti < st.tickets.length; ti++) {
+    var allPlated = true;
+    for (ii = 0; ii < st.tickets[ti].items.length; ii++) {
+      if (st.tickets[ti].items[ii].state !== "plated") { allPlated = false; break; }
+    }
+    if (allPlated) {
+      var ticket = st.tickets[ti];
+      ticket.clearedAt = Date.now();
+      st.score += 10 + (ticket.age < 30000 ? 5 : 0);
+      st.ticketsCleared += 1;
+      st.outbound.push(deepClone(ticket));
+      toRemove.push(ti);
+    }
+  }
+  for (var ri = toRemove.length - 1; ri >= 0; ri--) st.tickets.splice(toRemove[ri], 1);
+}
+
+function depositBowlServings(st, count, qp) {
+  var space = st.holdingBowl.maxServings - st.holdingBowl.servings.length;
+  var toAdd = Math.min(count, space);
+  if (toAdd < count) st.bowlFullFlash = true;
+  for (var i = 0; i < toAdd; i++) {
+    st.holdingBowl.servings.push({ freshness: BOWL_FRESH_MS, stale: false, staleTimer: 0, qualityPenalty: qp });
+  }
+}
+
+function retroactiveBowlMatch(st) {
+  var changed = true;
+  while (changed) {
+    changed = false;
+    var ti, ii;
+    for (ti = 0; ti < st.tickets.length; ti++) {
+      for (ii = 0; ii < st.tickets[ti].items.length; ii++) {
+        var item = st.tickets[ti].items[ii];
+        if (item.name === "Fries" && item.state === "waiting" && st.holdingBowl.servings.length > 0) {
+          var srv = st.holdingBowl.servings.shift();
+          item.state = "plated";
+          st.score -= srv.qualityPenalty;
+          if (srv.stale) { st.score -= 5; st.staleServings++; }
+          checkAndClearTickets(st);
+          changed = true; break;
+        }
+      }
+      if (changed) break;
+    }
+  }
+}
+
+function autoMatchNewTicket(st, tIdx) {
+  var ticket = st.tickets[tIdx];
+  if (!ticket) return;
+  var ii, si;
+  var stationKeys = ["fryers", "grill", "pizzaOven"];
+  for (ii = 0; ii < ticket.items.length; ii++) {
+    var item = ticket.items[ii];
+    if (item.state !== "waiting") continue;
+    if (item.name === "Fries" && st.holdingBowl.servings.length > 0) {
+      var srv = st.holdingBowl.servings.shift();
+      item.state = "plated"; st.score -= srv.qualityPenalty;
+      if (srv.stale) { st.score -= 5; st.staleServings++; }
+      continue;
+    }
+    var found = false;
+    for (si = 0; si < st.speculative.shelfItems.length; si++) {
+      var sh = st.speculative.shelfItems[si];
+      if (sh.itemName === item.name && !sh.voided) {
+        st.score += 3; st.score -= sh.qualityPenalty; st.speculativeMatches++;
+        st.speculative.shelfItems.splice(si, 1); item.state = "plated"; found = true; break;
+      }
+    }
+    if (found) continue;
+    found = false;
+    for (si = 0; si < stationKeys.length; si++) {
+      var stn = st.stations[stationKeys[si]];
+      if (stn.slots && stn.slots[0] && stn.slots[0].speculative && stn.slots[0].itemName === item.name) {
+        stn.slots[0].speculative = false; stn.slots[0].ticketId = ticket.id; stn.slots[0].itemId = item.id;
+        item.state = (stn.slots[0].state === "ready") ? "ready" : "cooking"; found = true; break;
+      }
+    }
+    if (found) continue;
+    var prep = st.stations.pizzaPrep.currentPrep;
+    if (prep && prep.speculative && prep.pizzaType === item.name) {
+      prep.speculative = false; prep.ticketId = ticket.id; prep.itemId = item.id; item.state = "cooking";
+    }
+  }
+  checkAndClearTickets(st);
+}
+
+function revertTicketItem(st, itemId) {
+  var ti, ii;
+  for (ti = 0; ti < st.tickets.length; ti++) {
+    for (ii = 0; ii < st.tickets[ti].items.length; ii++) {
+      if (st.tickets[ti].items[ii].id === itemId) { st.tickets[ti].items[ii].state = "waiting"; return; }
+    }
+  }
+}
+
+function updateTicketItemState(st, itemId, ns) {
+  var ti, ii;
+  for (ti = 0; ti < st.tickets.length; ti++) {
+    for (ii = 0; ii < st.tickets[ti].items.length; ii++) {
+      if (st.tickets[ti].items[ii].id === itemId) { st.tickets[ti].items[ii].state = ns; return; }
+    }
+  }
+}
+
+function makeSlot(itemName, itemId, ticketId, speculative, batchSize) {
+  var mi = MENU_ITEMS[itemName];
+  var needsSeason = mi.prepAction === "season";
+  return {
+    itemId: itemId, ticketId: ticketId, itemName: itemName,
+    cookTime: mi.cookTime, cookRemaining: mi.cookTime,
+    burnRemaining: STATION_CONFIGS[mi.station] ? STATION_CONFIGS[mi.station].burnWindow : 10000,
+    cleanupRemaining: STATION_CONFIGS[mi.station] ? STATION_CONFIGS[mi.station].cleanupTime : 1000,
+    state: needsSeason ? "prepping" : "cooking", speculative: speculative,
+    shakeNeeded: mi.midCookAction === "shake", shakeMissed: false,
+    flipNeeded: mi.midCookAction === "flip", flipMissed: false,
+    seasonDone: !needsSeason, cancelTimer: needsSeason ? CANCEL_MS : 0,
+    qualityPenalty: 0, batchSize: batchSize || 1
+  };
+}
+
+/* ===== REDUCER ===== */
+
+function gameReducer(state, action) {
+  var newState, stationId, stationKeys, si, ti, ii, slot, stn, match, prep;
+
+  switch (action.type) {
+
+    case "START_GAME":
+      newState = createInitialState();
+      newState.phase = "PLAYING"; newState.nextTicketIn = 3000;
+      return newState;
+
+    case "RESTART":
+      return createInitialState();
+
+    case "TAP_STATION":
+      if (state.phase !== "PLAYING") return state;
+      var targetPos = action.position;
+      if (targetPos === 4 || targetPos < 0 || targetPos > 3) return state;
+      if (state.dan.position === targetPos && !state.dan.moving) {
+        stationId = getStationIdByPosition(targetPos);
+        if (stationId === "fryers") {
+          slot = state.stations.fryers.slots[0];
+          if (slot && slot.state === "cooking" && slot.shakeNeeded) {
+            var ht = slot.cookTime / 2;
+            if (slot.cookRemaining <= ht && slot.cookRemaining > ht - MID_COOK_WIN) {
+              newState = deepClone(state); newState.stations.fryers.slots[0].shakeNeeded = false; return newState;
+            }
+          }
+        }
+        if (stationId === "grill") {
+          slot = state.stations.grill.slots[0];
+          if (slot && slot.state === "cooking" && slot.flipNeeded) {
+            var ht2 = slot.cookTime / 2;
+            if (slot.cookRemaining <= ht2 && slot.cookRemaining > ht2 - MID_COOK_WIN) {
+              newState = deepClone(state); newState.stations.grill.slots[0].flipNeeded = false; return newState;
+            }
+          }
+        }
+        return state;
+      }
+      newState = deepClone(state);
+      newState.dan.targetPosition = targetPos;
+      if (!newState.dan.moving) {
+        newState.dan.moving = true; newState.dan.moveProgress = 0;
+        var direction = targetPos > newState.dan.position ? 1 : -1;
+        newState.dan.currentSegmentFrom = newState.dan.position;
+        newState.dan.currentSegmentTo = newState.dan.position + direction;
+      }
+      return newState;
+
+    case "SELECT_ITEM":
+      if (state.phase !== "PLAYING" || state.dan.moving) return state;
+      var itemName = action.itemName;
+      var mi = MENU_ITEMS[itemName];
+      if (!mi) return state;
+      if (state.dan.position !== STATION_CONFIGS[mi.station].position) return state;
+      stationId = mi.station;
+      stn = state.stations[stationId];
+      if (stn.slots[0] !== null || stn.cleaning) return state;
+      if (itemName === "Fries") {
+        newState = deepClone(state); newState.pendingFryBatch = true; return newState;
+      }
+      newState = deepClone(state);
+      match = findWaitingByName(newState.tickets, itemName);
+      var isSpec = match === null;
+      var tId = isSpec ? null : newState.tickets[match.ti].id;
+      var iId = isSpec ? newState.itemIdCounter++ : newState.tickets[match.ti].items[match.ii].id;
+      newState.stations[stationId].slots[0] = makeSlot(itemName, iId, tId, isSpec, 1);
+      if (!isSpec) newState.tickets[match.ti].items[match.ii].state = "cooking";
+      return newState;
+
+    case "SELECT_BATCH":
+      if (state.phase !== "PLAYING" || !state.pendingFryBatch) return state;
+      if (state.dan.position !== 0 || state.dan.moving) return state;
+      stn = state.stations.fryers;
+      if (stn.slots[0] !== null || stn.cleaning) return state;
+      newState = deepClone(state);
+      match = findWaitingByName(newState.tickets, "Fries");
+      var isSpec2 = match === null;
+      var tId2 = isSpec2 ? null : newState.tickets[match.ti].id;
+      var iId2 = isSpec2 ? newState.itemIdCounter++ : newState.tickets[match.ti].items[match.ii].id;
+      newState.stations.fryers.slots[0] = makeSlot("Fries", iId2, tId2, isSpec2, action.batchSize);
+      if (!isSpec2) newState.tickets[match.ti].items[match.ii].state = "cooking";
+      newState.pendingFryBatch = false;
+      return newState;
+
+    case "TAP_SHAKE":
+      if (state.phase !== "PLAYING" || state.dan.position !== 0 || state.dan.moving) return state;
+      slot = state.stations.fryers.slots[0];
+      if (!slot || slot.state !== "cooking" || !slot.shakeNeeded) return state;
+      var h1 = slot.cookTime / 2;
+      if (slot.cookRemaining > h1 || slot.cookRemaining <= h1 - MID_COOK_WIN) return state;
+      newState = deepClone(state); newState.stations.fryers.slots[0].shakeNeeded = false; return newState;
+
+    case "TAP_FLIP":
+      if (state.phase !== "PLAYING" || state.dan.position !== 1 || state.dan.moving) return state;
+      slot = state.stations.grill.slots[0];
+      if (!slot || slot.state !== "cooking" || !slot.flipNeeded) return state;
+      var h2 = slot.cookTime / 2;
+      if (slot.cookRemaining > h2 || slot.cookRemaining <= h2 - MID_COOK_WIN) return state;
+      newState = deepClone(state); newState.stations.grill.slots[0].flipNeeded = false; return newState;
+
+    case "TAP_SEASON":
+      if (state.phase !== "PLAYING" || state.dan.position !== 1 || state.dan.moving) return state;
+      slot = state.stations.grill.slots[0];
+      if (!slot || slot.state !== "prepping" || slot.seasonDone) return state;
+      newState = deepClone(state);
+      newState.stations.grill.slots[0].seasonDone = true;
+      newState.stations.grill.slots[0].state = "cooking";
+      newState.stations.grill.slots[0].cancelTimer = 0;
+      return newState;
+
+    case "TAP_CANCEL":
+      if (state.phase !== "PLAYING" || state.dan.moving) return state;
+      if (state.dan.position === 1) {
+        slot = state.stations.grill.slots[0];
+        if (slot && slot.state === "prepping") {
+          newState = deepClone(state);
+          if (slot.ticketId !== null) revertTicketItem(newState, slot.itemId);
+          newState.stations.grill.slots[0] = null; return newState;
+        }
+      }
+      if (state.dan.position === 3) {
+        prep = state.stations.pizzaPrep.currentPrep;
+        if (prep) {
+          newState = deepClone(state);
+          if (prep.ticketId !== null) revertTicketItem(newState, prep.itemId);
+          newState.stations.pizzaPrep.currentPrep = null; newState.stations.pizzaPrep.cancelTimer = 0; return newState;
+        }
+      }
+      return state;
+
+    case "TAP_PLATE":
+      if (state.phase !== "PLAYING" || state.dan.moving) return state;
+      stationId = getStationIdByPosition(state.dan.position);
+      if (!stationId) return state;
+      stn = state.stations[stationId];
+      if (!stn.slots || !stn.slots[0] || stn.slots[0].state !== "ready") return state;
+      newState = deepClone(state);
+      var ns = newState.stations[stationId];
+      var sl = ns.slots[0];
+      if (!sl.speculative) {
+        newState.score -= sl.qualityPenalty;
+        updateTicketItemState(newState, sl.itemId, "plated");
+        newState.shelf.push({ itemId: sl.itemId, name: sl.itemName, time: Date.now() });
+      } else {
+        newState.speculative.shelfItems.push({
+          itemId: sl.itemId, itemName: sl.itemName,
+          freshness: SHELF_FRESH_MS, qualityPenalty: sl.qualityPenalty, voided: false
+        });
+      }
+      if (sl.itemName === "Fries" && sl.batchSize === 3) {
+        depositBowlServings(newState, 2, sl.qualityPenalty);
+        retroactiveBowlMatch(newState);
+      }
+      ns.slots[0] = null; ns.cleaning = false;
+      checkAndClearTickets(newState);
+      return newState;
+
+    case "TAP_BOWL":
+      if (state.phase !== "PLAYING" || state.dan.position !== 0 || state.dan.moving) return state;
+      if (state.holdingBowl.servings.length === 0) return state;
+      match = findWaitingByName(state.tickets, "Fries");
+      if (!match) return state;
+      newState = deepClone(state);
+      var bsrv = newState.holdingBowl.servings.shift();
+      var tItem = newState.tickets[match.ti].items[match.ii];
+      tItem.state = "plated"; newState.score -= bsrv.qualityPenalty;
+      if (bsrv.stale) { newState.score -= 5; newState.staleServings++; }
+      newState.shelf.push({ itemId: tItem.id, name: "Fries", time: Date.now() });
+      checkAndClearTickets(newState);
+      return newState;
+
+    case "SELECT_PIZZA":
+      if (state.phase !== "PLAYING" || state.dan.position !== 3 || state.dan.moving) return state;
+      if (state.stations.pizzaOven.slots[0] !== null) return state;
+      if (state.stations.pizzaPrep.currentPrep !== null) return state;
+      var pType = action.pizzaType;
+      var pmi = MENU_ITEMS[pType];
+      if (!pmi) return state;
+      newState = deepClone(state);
+      match = findWaitingByName(newState.tickets, pType);
+      var pSpec = match === null;
+      var pTid = pSpec ? null : newState.tickets[match.ti].id;
+      var pIid = pSpec ? newState.itemIdCounter++ : newState.tickets[match.ti].items[match.ii].id;
+      newState.stations.pizzaPrep.currentPrep = {
+        pizzaType: pType, step: 0, stepsTotal: pmi.toppings.length,
+        ticketId: pTid, itemId: pIid, speculative: pSpec
+      };
+      newState.stations.pizzaPrep.cancelTimer = CANCEL_MS;
+      if (!pSpec) newState.tickets[match.ti].items[match.ii].state = "cooking";
+      return newState;
+
+    case "TAP_PIZZA_TOPPING":
+      if (state.phase !== "PLAYING" || state.dan.position !== 3 || state.dan.moving) return state;
+      prep = state.stations.pizzaPrep.currentPrep;
+      if (!prep) return state;
+      var expectedTopping = MENU_ITEMS[prep.pizzaType].toppings[prep.step];
+      if (action.topping === expectedTopping) {
+        newState = deepClone(state);
+        var np = newState.stations.pizzaPrep.currentPrep;
+        np.step++;
+        if (np.step >= np.stepsTotal) {
+          if (newState.stations.pizzaOven.slots[0] !== null) {
+            if (np.ticketId !== null) revertTicketItem(newState, np.itemId);
+            newState.stations.pizzaPrep.currentPrep = null;
+            newState.stations.pizzaPrep.cancelTimer = 0;
+            newState.meltdown.meter = clamp(newState.meltdown.meter + 10, 0, 100);
+            newState.voidCount++;
+            return newState;
+          }
+          var pmi2 = MENU_ITEMS[np.pizzaType];
+          newState.stations.pizzaOven.slots[0] = {
+            itemId: np.itemId, ticketId: np.ticketId, itemName: np.pizzaType,
+            cookTime: pmi2.cookTime, cookRemaining: pmi2.cookTime,
+            burnRemaining: STATION_CONFIGS.pizzaOven.burnWindow,
+            cleanupRemaining: STATION_CONFIGS.pizzaOven.cleanupTime,
+            state: "cooking", speculative: np.speculative,
+            shakeNeeded: false, shakeMissed: false, flipNeeded: false, flipMissed: false,
+            seasonDone: true, cancelTimer: 0, qualityPenalty: 0, batchSize: 1
+          };
+          newState.stations.pizzaPrep.currentPrep = null;
+          newState.stations.pizzaPrep.cancelTimer = 0;
+        }
+        return newState;
+      } else {
+        newState = deepClone(state);
+        if (prep.ticketId !== null) revertTicketItem(newState, prep.itemId);
+        newState.stations.pizzaPrep.currentPrep = null;
+        newState.stations.pizzaPrep.cancelTimer = 0;
+        newState.meltdown.meter = clamp(newState.meltdown.meter + MELTDOWN_SPIKE_WRONG_TOPPING, 0, 100);
+        newState.voidCount++; newState.score -= 8;
+        return newState;
+      }
+
+    case "TICK":
+      if (state.phase === "SHIFT_END_DELAY") {
+        newState = deepClone(state);
+        newState.shiftEndDelay -= action.delta;
+        if (newState.shiftEndDelay <= 0) newState.phase = "SHIFT_END";
+        return newState;
+      }
+      if (state.phase !== "PLAYING") return state;
+      newState = deepClone(state);
+      var delta = action.delta;
+
+      /* 1. Shift clock */
+      newState.shiftClock -= delta;
+      if (newState.shiftClock <= 0) {
+        newState.shiftClock = 0; newState.phase = "SHIFT_END_DELAY"; newState.shiftEndDelay = 3000;
+        for (ti = 0; ti < newState.tickets.length; ti++) newState.score -= 10;
+        return newState;
+      }
+
+      /* 2. Ticket spawn */
+      newState.nextTicketIn -= delta;
+      if (newState.nextTicketIn <= 0) {
+        var elapsedMs = SHIFT_DURATION - newState.shiftClock;
+        var gen = generateTicket(newState);
+        newState.tickets.push(gen.ticket);
+        newState.ticketIdCounter = gen.nextTicketId;
+        newState.itemIdCounter = gen.nextItemId;
+        newState.nextTicketIn = getNextSpawnInterval(elapsedMs);
+        autoMatchNewTicket(newState, newState.tickets.length - 1);
+      }
+
+      /* 3. Cook timers + shake/flip windows */
+      stationKeys = ["fryers", "grill", "pizzaOven"];
+      for (si = 0; si < stationKeys.length; si++) {
+        stn = newState.stations[stationKeys[si]];
+        slot = stn.slots[0];
+        if (slot && slot.state === "cooking") {
+          slot.cookRemaining -= delta;
+          if (slot.shakeNeeded) {
+            var sh = slot.cookTime / 2;
+            if (slot.cookRemaining <= sh - MID_COOK_WIN) {
+              slot.shakeNeeded = false; slot.shakeMissed = true; slot.qualityPenalty += 3;
+              newState.meltdown.meter = clamp(newState.meltdown.meter + MELTDOWN_SPIKE_MISSED_ACTION, 0, 100);
+            }
+          }
+          if (slot.flipNeeded) {
+            var fh = slot.cookTime / 2;
+            if (slot.cookRemaining <= fh - MID_COOK_WIN) {
+              slot.flipNeeded = false; slot.flipMissed = true; slot.qualityPenalty += 3;
+              newState.meltdown.meter = clamp(newState.meltdown.meter + MELTDOWN_SPIKE_MISSED_ACTION, 0, 100);
+            }
+          }
+          if (slot.cookRemaining <= 0) {
+            slot.cookRemaining = 0; slot.state = "ready";
+            if (slot.ticketId !== null) updateTicketItemState(newState, slot.itemId, "ready");
+          }
+        }
+      }
+
+      /* 4. Burn windows */
+      for (si = 0; si < stationKeys.length; si++) {
+        stn = newState.stations[stationKeys[si]];
+        slot = stn.slots[0];
+        if (slot && slot.state === "ready") {
+          slot.burnRemaining -= delta;
+          if (slot.burnRemaining <= 0) {
+            slot.state = "burned_cleanup"; stn.cleaning = true;
+            slot.cleanupRemaining = STATION_CONFIGS[stationKeys[si]].cleanupTime;
+            newState.meltdown.meter = clamp(newState.meltdown.meter + MELTDOWN_SPIKE_BURN, 0, 100);
+            newState.ticketsBurned += 1; newState.score -= 5;
+            if (slot.ticketId !== null) updateTicketItemState(newState, slot.itemId, "burned");
+          }
+        }
+      }
+
+      /* 5. Cleanup timers */
+      for (si = 0; si < stationKeys.length; si++) {
+        stn = newState.stations[stationKeys[si]];
+        slot = stn.slots[0];
+        if (stn.cleaning && slot && slot.state === "burned_cleanup") {
+          slot.cleanupRemaining -= delta;
+          if (slot.cleanupRemaining <= 0) {
+            if (slot.ticketId !== null) revertTicketItem(newState, slot.itemId);
+            stn.slots[0] = null; stn.cleaning = false;
+          }
+        }
+      }
+
+      /* 6. Holding bowl freshness */
+      for (var bi = newState.holdingBowl.servings.length - 1; bi >= 0; bi--) {
+        var bsv = newState.holdingBowl.servings[bi];
+        if (!bsv.stale) {
+          bsv.freshness -= delta;
+          if (bsv.freshness <= 0) { bsv.stale = true; bsv.staleTimer = BOWL_STALE_MS; }
+        } else {
+          bsv.staleTimer -= delta;
+          if (bsv.staleTimer <= 0) {
+            newState.holdingBowl.servings.splice(bi, 1);
+            newState.score -= 8; newState.voidCount++;
+            newState.meltdown.meter = clamp(newState.meltdown.meter + MELTDOWN_SPIKE_VOID, 0, 100);
+          }
+        }
+      }
+
+      /* 7. Speculative shelf freshness */
+      for (var ssi = newState.speculative.shelfItems.length - 1; ssi >= 0; ssi--) {
+        var shi = newState.speculative.shelfItems[ssi];
+        shi.freshness -= delta;
+        if (shi.freshness <= 0) {
+          newState.speculative.shelfItems.splice(ssi, 1);
+          newState.score -= 8; newState.voidCount++;
+          newState.meltdown.meter = clamp(newState.meltdown.meter + MELTDOWN_SPIKE_VOID, 0, 100);
+        }
+      }
+
+      /* 8. Pre-cook cancel timers */
+      var gs = newState.stations.grill.slots[0];
+      if (gs && gs.state === "prepping" && !gs.seasonDone) {
+        if (newState.dan.position !== 1 || newState.dan.moving) {
+          gs.cancelTimer -= delta;
+          if (gs.cancelTimer <= 0) {
+            if (gs.ticketId !== null) revertTicketItem(newState, gs.itemId);
+            newState.stations.grill.slots[0] = null;
+          }
+        } else { gs.cancelTimer = CANCEL_MS; }
+      }
+      var pp = newState.stations.pizzaPrep;
+      if (pp.currentPrep) {
+        if (newState.dan.position !== 3 || newState.dan.moving) {
+          pp.cancelTimer -= delta;
+          if (pp.cancelTimer <= 0) {
+            if (pp.currentPrep.ticketId !== null) revertTicketItem(newState, pp.currentPrep.itemId);
+            pp.currentPrep = null; pp.cancelTimer = 0;
+          }
+        } else { pp.cancelTimer = CANCEL_MS; }
+      }
+
+      /* 9. Reset pendingFryBatch if Dan left fryer */
+      if (newState.pendingFryBatch && (newState.dan.position !== 0 || newState.dan.moving)) {
+        newState.pendingFryBatch = false;
+      }
+
+      /* 10. Meltdown meter -- passive decay */
+      if (!newState.meltdown.recovering) {
+        newState.meltdown.meter = clamp(newState.meltdown.meter - MELTDOWN_DECAY_PER_SEC * delta / 1000, 0, 100);
+      }
+      if (newState.meltdown.meter >= 100) {
+        newState.meltdown.meter = MELTDOWN_METER_RESET;
+        newState.meltdown.recovering = true;
+        newState.meltdown.recoveryRemaining = MELTDOWN_RECOVERY_TIME;
+        newState.meltdown.count += 1; newState.score -= 15;
+        newState.dan.meltdownActive = true; newState.meltdownFlash = true;
+      }
+
+      /* 11. Meltdown recovery */
+      if (newState.meltdown.recovering) {
+        newState.meltdown.recoveryRemaining -= delta;
+        if (newState.meltdown.recoveryRemaining <= 0) {
+          newState.meltdown.recovering = false; newState.meltdown.recoveryRemaining = 0;
+          newState.dan.meltdownActive = false;
+        }
+      }
+
+      /* 12. Dan movement */
+      if (newState.dan.moving) {
+        var spd = newState.dan.meltdownActive ? MOVE_SPEED_MELTDOWN : MOVE_SPEED_NORMAL;
+        newState.dan.moveProgress += delta / spd;
+        if (newState.dan.moveProgress >= 1) {
+          newState.dan.moveProgress = 0;
+          newState.dan.position = newState.dan.currentSegmentTo;
+          if (newState.dan.position === newState.dan.targetPosition) {
+            newState.dan.moving = false;
+          } else {
+            var dir = newState.dan.targetPosition > newState.dan.position ? 1 : -1;
+            newState.dan.currentSegmentFrom = newState.dan.position;
+            newState.dan.currentSegmentTo = newState.dan.position + dir;
+          }
+        }
+      }
+
+      /* 13. Ticket ages */
+      for (ti = 0; ti < newState.tickets.length; ti++) newState.tickets[ti].age += delta;
+
+      /* 14. Clear stale shelf entries */
+      var now = Date.now();
+      var newShelf = [];
+      for (si = 0; si < newState.shelf.length; si++) {
+        if (now - newState.shelf[si].time < 5000) newShelf.push(newState.shelf[si]);
+      }
+      newState.shelf = newShelf;
+
+      return newState;
+
+    case "CLEAR_MELTDOWN_FLASH":
+      newState = deepClone(state); newState.meltdownFlash = false; return newState;
+
+    case "CLEAR_BOWL_FLASH":
+      newState = deepClone(state); newState.bowlFullFlash = false; return newState;
+
+    default:
+      return state;
+  }
+}
+
+/* ===== REACT COMPONENTS ===== */
+
+var e = React.createElement;
+
+function TitleScreen(props) {
+  return e("div", { className: "title-screen" },
+    e("div", { className: "title-main" }, "DAN'S MELTDOWN"),
+    e("div", { className: "title-sub" }, "OB Clark's Kitchen"),
+    e("button", {
+      className: "title-btn",
+      onClick: props.onStart,
+      onTouchStart: function(ev) { ev.preventDefault(); props.onStart(); }
+    }, "Tap to start shift"),
+    e("div", { className: "title-version" }, "v" + VERSION)
+  );
+}
+
+function HUD(props) {
+  var state = props.state;
+  var minutes = Math.floor(state.shiftClock / 60000);
+  var seconds = Math.floor((state.shiftClock % 60000) / 1000);
+  var clockStr = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+  var meterPct = Math.round(state.meltdown.meter);
+  return e("div", { className: "hud" },
+    e("div", { className: "hud-score" }, state.score),
+    e("div", { className: "meltdown-bar-bg", style: { position: "relative" } },
+      e("div", { className: "meltdown-bar-fill", style: { width: meterPct + "%" } }),
+      e("div", { className: "meltdown-label" }, "MELTDOWN " + meterPct + "%")
+    ),
+    e("div", { className: "hud-clock" }, clockStr)
+  );
+}
+
+function getHighlightedTicketIds(state) {
+  var ids = {};
+  if (state.dan.moving) return ids;
+  var pos = state.dan.position;
+  var stationId = getStationIdByPosition(pos);
+  if (!stationId) return ids;
+  var stn = state.stations[stationId];
+  if (stn.slots && stn.slots[0]) {
+    var slot = stn.slots[0];
+    if (slot.state === "ready" && slot.ticketId !== null) ids[slot.ticketId] = true;
+  }
+  if (stationId === "fryers" && state.holdingBowl.servings.length > 0) {
+    var ti, ii;
+    for (ti = 0; ti < state.tickets.length; ti++) {
+      for (ii = 0; ii < state.tickets[ti].items.length; ii++) {
+        if (state.tickets[ti].items[ii].name === "Fries" && state.tickets[ti].items[ii].state === "waiting") {
+          ids[state.tickets[ti].id] = true;
+        }
+      }
+    }
+  }
+  return ids;
+}
+
+function TicketRail(props) {
+  var state = props.state;
+  var tickets = state.tickets;
+  var highlighted = getHighlightedTicketIds(state);
+  var cards = [];
+  var i, j;
+  for (i = 0; i < tickets.length; i++) {
+    var ticket = tickets[i];
+    var itemEls = [];
+    for (j = 0; j < ticket.items.length; j++) {
+      var item = ticket.items[j];
+      var cls = "ticket-item ticket-item-" + item.state;
+      var prefix = "";
+      if (item.state === "cooking") prefix = ">> ";
+      if (item.state === "ready") prefix = "* ";
+      if (item.state === "plated") prefix = "v ";
+      if (item.state === "burned") prefix = "X ";
+      itemEls.push(e("div", { key: item.id, className: cls }, prefix + getDisplayName(item.name)));
+    }
+    var ageSec = Math.floor(ticket.age / 1000);
+    var cardClass = "ticket-card" + (highlighted[ticket.id] ? " ticket-card-highlight" : "");
+    cards.push(e("div", { key: ticket.id, className: cardClass },
+      e("div", { className: "ticket-card-header" }, "#" + ticket.id + " (" + ageSec + "m)"),
+      itemEls
+    ));
+  }
+  return e("div", { className: "ticket-rail" },
+    cards.length === 0 ? e("div", { style: { color: "#666666", textAlign: "center", fontSize: "1.5vh", width: "100%" } }, "No tickets") : cards
+  );
+}
+
+function StationBox(props) {
+  var cfg = props.config;
+  var stn = props.stationState;
+  var onTap = props.onTap;
+  var rc = cfg.renderCoords;
+  var slot = stn.slots ? stn.slots[0] : null;
+  var statusText = "EMPTY";
+  var stateClass = "station-empty";
+  var bgColor = cfg.color;
+  var isFuture = cfg.type === "future";
+  var isPrep = cfg.type === "prep";
+
+  if (isFuture) {
+    bgColor = "#444444"; statusText = ""; stateClass = "station-empty";
+  } else if (isPrep) {
+    var cp = stn.currentPrep;
+    if (cp) { statusText = cp.step + "/" + cp.stepsTotal; stateClass = "station-cooking"; }
+  } else if (stn.cleaning && slot && slot.state === "burned_cleanup") {
+    statusText = "BURNED"; stateClass = "station-burned"; bgColor = "#661111";
+  } else if (slot) {
+    if (slot.state === "cooking" || slot.state === "prepping") {
+      var secs = Math.ceil(slot.cookRemaining / 1000);
+      statusText = slot.state === "prepping" ? "PREP" : secs + "m";
+      stateClass = "station-cooking";
+    } else if (slot.state === "ready") {
+      statusText = "READY"; stateClass = "station-ready";
+    }
+  }
+
+  var children = [
+    e("div", { key: "n", className: "station-name" }, cfg.name),
+    e("div", { key: "s", className: "station-status" }, statusText)
+  ];
+  if (slot && slot.state !== "burned_cleanup" && !isPrep && !isFuture) {
+    children.push(e("div", { key: "i", style: { fontSize: "1.7vh", marginTop: "0.3vh", color: "#cccccc" } },
+      (slot.speculative ? "? " : "") + slot.itemName));
+  }
+
+  return e("div", {
+    className: "station " + stateClass,
+    style: {
+      left: (rc.x - rc.w / 2) + "%", top: (rc.y - rc.h / 2) + "%",
+      width: rc.w + "%", height: rc.h + "%", background: bgColor,
+      opacity: isFuture ? 0.4 : 1, cursor: isFuture ? "default" : "pointer"
+    },
+    onClick: isFuture ? null : function() { onTap(cfg.position); },
+    onTouchStart: isFuture ? null : function(ev) { ev.preventDefault(); onTap(cfg.position); }
+  }, children);
+}
+
+function HoldingBowlUI(props) {
+  var bowl = props.bowl;
+  var srvEls = [];
+  var i;
+  for (i = 0; i < bowl.servings.length; i++) {
+    srvEls.push(e("div", { key: i, className: bowl.servings[i].stale ? "bowl-srv-stale" : "bowl-srv-fresh" }));
+  }
+  var timerText = "";
+  if (bowl.servings.length > 0) {
+    var last = bowl.servings[bowl.servings.length - 1];
+    if (!last.stale) { timerText = Math.ceil(last.freshness / 1000) + "m"; }
+    else { timerText = "STALE " + Math.ceil(last.staleTimer / 1000) + "m"; }
+  }
+  var fryCoords = POSITION_COORDS[0];
+  return e("div", { className: "holding-bowl", style: {
+    left: (fryCoords.x + 12) + "%", top: "26%"
+  } },
+    e("div", { className: "bowl-label" }, "BOWL: " + bowl.servings.length + "/" + BOWL_MAX),
+    e("div", { className: "bowl-servings" }, srvEls),
+    timerText ? e("div", { className: "bowl-timer" }, timerText) : null
+  );
+}
+
+function InteractionPanel(props) {
+  var state = props.state;
+  var dd = props.debouncedDispatch;
+  var dan = state.dan;
+
+  function btn(key, label, cls, actionObj) {
+    return e("button", {
+      key: key, className: "panel-btn " + (cls || ""),
+      onClick: function(ev) { ev.stopPropagation(); dd(actionObj); },
+      onTouchStart: function(ev) { ev.preventDefault(); ev.stopPropagation(); dd(actionObj); }
+    }, label);
+  }
+
+  if (dan.moving) {
+    var destId = getStationIdByPosition(dan.targetPosition);
+    var destName = destId ? STATION_CONFIGS[destId].name : "";
+    return e("div", { className: "interaction-panel" },
+      e("div", { className: "panel-station-name" }, "WALKING TO " + destName + "...")
+    );
+  }
+
+  var pos = dan.position;
+  var stationId = getStationIdByPosition(pos);
+  if (!stationId || stationId === "saladPrep") {
+    return e("div", { className: "interaction-panel" },
+      e("div", { className: "panel-station-name" }, "...")
+    );
+  }
+
+  var els = [];
+
+  if (stationId === "fryers") {
+    var fs = state.stations.fryers;
+    var fslot = fs.slots[0];
+    els.push(e("div", { key: "name", className: "panel-station-name" }, "FRYERS"));
+    if (fs.cleaning && fslot && fslot.state === "burned_cleanup") {
+      els.push(e("div", { key: "cl", className: "panel-info" }, "CLEANING..."));
+    } else if (fslot === null) {
+      if (state.pendingFryBatch) {
+        els.push(e("div", { key: "bl", className: "panel-info" }, "FRIES -- BOWL: " + state.holdingBowl.servings.length + "/" + BOWL_MAX));
+        els.push(e("div", { key: "brow", className: "panel-btn-row" },
+          btn("x1", "x1", "", { type: "SELECT_BATCH", batchSize: 1 }),
+          btn("x3", "x3", "", { type: "SELECT_BATCH", batchSize: 3 })
+        ));
+      } else {
+        var fitems = STATION_CONFIGS.fryers.items;
+        var fbtns = [];
+        for (var fi = 0; fi < fitems.length; fi++) {
+          (function(iName) {
+            fbtns.push(btn(iName, MENU_ITEMS[iName].buttonLabel, "", { type: "SELECT_ITEM", itemName: iName }));
+          })(fitems[fi]);
+        }
+        els.push(e("div", { key: "frow", className: "panel-btn-row" }, fbtns));
+      }
+    } else if (fslot.state === "cooking") {
+      var fsec = Math.ceil(fslot.cookRemaining / 1000);
+      els.push(e("div", { key: "t", className: "panel-info-bright" },
+        (fslot.speculative ? "? " : "") + fslot.itemName + " " + fsec + "m"));
+      if (fslot.shakeNeeded) {
+        var fhalf = fslot.cookTime / 2;
+        if (fslot.cookRemaining <= fhalf && fslot.cookRemaining > fhalf - MID_COOK_WIN) {
+          els.push(e("div", { key: "srow", className: "panel-btn-row" },
+            btn("shake", "SHAKE", "panel-btn-flash", { type: "TAP_SHAKE" })
+          ));
+        }
+      }
+    } else if (fslot.state === "ready") {
+      els.push(e("div", { key: "r", className: "panel-info-bright" },
+        (fslot.speculative ? "? " : "") + fslot.itemName + " READY"));
+      els.push(e("div", { key: "prow", className: "panel-btn-row" },
+        btn("plate", "PLATE " + getDisplayName(fslot.itemName), "panel-btn-plate-big", { type: "TAP_PLATE" })
+      ));
+    }
+    var hasFryWait = findWaitingByName(state.tickets, "Fries") !== null;
+    if (hasFryWait && state.holdingBowl.servings.length > 0) {
+      els.push(e("div", { key: "bowlrow", className: "panel-btn-row" },
+        btn("bowl", "SERVE FROM BOWL (" + state.holdingBowl.servings.length + ")", "panel-btn-bowl", { type: "TAP_BOWL" })
+      ));
+    }
+  }
+
+  else if (stationId === "grill") {
+    var gst = state.stations.grill;
+    var gslot = gst.slots[0];
+    els.push(e("div", { key: "name", className: "panel-station-name" }, "GRILL"));
+    if (gst.cleaning && gslot && gslot.state === "burned_cleanup") {
+      els.push(e("div", { key: "cl", className: "panel-info" }, "CLEANING..."));
+    } else if (gslot === null) {
+      var gitems = STATION_CONFIGS.grill.items;
+      var gbtns = [];
+      for (var gi = 0; gi < gitems.length; gi++) {
+        (function(iName) {
+          gbtns.push(btn(iName, MENU_ITEMS[iName].buttonLabel, "", { type: "SELECT_ITEM", itemName: iName }));
+        })(gitems[gi]);
+      }
+      els.push(e("div", { key: "grow", className: "panel-btn-row" }, gbtns));
+    } else if (gslot.state === "prepping") {
+      els.push(e("div", { key: "p", className: "panel-info-bright" }, gslot.itemName + " -- WAITING TO COOK"));
+      els.push(e("div", { key: "seasonrow", className: "panel-btn-row" },
+        btn("season", "SEASON TO START", "panel-btn-season", { type: "TAP_SEASON" }),
+        btn("cancel", "CANCEL", "panel-btn-cancel", { type: "TAP_CANCEL" })
+      ));
+    } else if (gslot.state === "cooking") {
+      var gsec = Math.ceil(gslot.cookRemaining / 1000);
+      els.push(e("div", { key: "t", className: "panel-info-bright" },
+        (gslot.speculative ? "? " : "") + gslot.itemName + " " + gsec + "m"));
+      if (gslot.flipNeeded) {
+        var ghalf = gslot.cookTime / 2;
+        if (gslot.cookRemaining <= ghalf && gslot.cookRemaining > ghalf - MID_COOK_WIN) {
+          els.push(e("div", { key: "frow", className: "panel-btn-row" },
+            btn("flip", "FLIP", "panel-btn-flash", { type: "TAP_FLIP" })
+          ));
+        }
+      }
+    } else if (gslot.state === "ready") {
+      els.push(e("div", { key: "r", className: "panel-info-bright" },
+        (gslot.speculative ? "? " : "") + gslot.itemName + " READY"));
+      els.push(e("div", { key: "prow", className: "panel-btn-row" },
+        btn("plate", "PLATE " + getDisplayName(gslot.itemName), "panel-btn-plate-big", { type: "TAP_PLATE" })
+      ));
+    }
+  }
+
+  else if (stationId === "pizzaOven") {
+    var os = state.stations.pizzaOven;
+    var oslot = os.slots[0];
+    els.push(e("div", { key: "name", className: "panel-station-name" }, "PIZZA OVEN"));
+    if (os.cleaning && oslot && oslot.state === "burned_cleanup") {
+      els.push(e("div", { key: "cl", className: "panel-info" }, "CLEANING..."));
+    } else if (oslot === null) {
+      els.push(e("div", { key: "e", className: "panel-info" }, "OVEN EMPTY"));
+    } else if (oslot.state === "cooking") {
+      var osec = Math.ceil(oslot.cookRemaining / 1000);
+      els.push(e("div", { key: "t", className: "panel-info-bright" },
+        (oslot.speculative ? "? " : "") + oslot.itemName + " " + osec + "m"));
+    } else if (oslot.state === "ready") {
+      els.push(e("div", { key: "r", className: "panel-info-bright" },
+        (oslot.speculative ? "? " : "") + oslot.itemName + " READY"));
+      els.push(e("div", { key: "prow", className: "panel-btn-row" },
+        btn("plate", "PLATE " + getDisplayName(oslot.itemName), "panel-btn-plate-big", { type: "TAP_PLATE" })
+      ));
+    }
+  }
+
+  else if (stationId === "pizzaPrep") {
+    var ovenSlot = state.stations.pizzaOven.slots[0];
+    var pps = state.stations.pizzaPrep;
+    els.push(e("div", { key: "name", className: "panel-station-name" }, "PIZZA PREP"));
+    if (ovenSlot !== null && pps.currentPrep === null) {
+      els.push(e("div", { key: "ob", className: "panel-info" }, "OVEN BUSY -- WAIT"));
+    } else if (pps.currentPrep === null) {
+      els.push(e("div", { key: "prow", className: "panel-btn-row" },
+        btn("cheese", "CHEESE PIZZA", "", { type: "SELECT_PIZZA", pizzaType: "Cheese Pizza" }),
+        btn("pepp", "PEPP PIZZA", "", { type: "SELECT_PIZZA", pizzaType: "Pepperoni Pizza" })
+      ));
+    } else {
+      var cp = pps.currentPrep;
+      var recipe = MENU_ITEMS[cp.pizzaType].toppings;
+      var recipeEls = [];
+      for (var ri = 0; ri < recipe.length; ri++) {
+        var stepCls = "pizza-recipe-step";
+        if (ri < cp.step) stepCls = "pizza-recipe-step-done";
+        else if (ri === cp.step) stepCls = "pizza-recipe-step-current";
+        if (ri > 0) recipeEls.push(e("span", { key: "a" + ri, className: "pizza-recipe-step" }, " > "));
+        recipeEls.push(e("span", { key: "s" + ri, className: stepCls }, recipe[ri]));
+      }
+      els.push(e("div", { key: "recipe", className: "pizza-recipe" },
+        e("span", null, (cp.speculative ? "? " : "") + getDisplayName(cp.pizzaType) + ": "),
+        recipeEls
+      ));
+      var toppingBtns = [];
+      for (var tbi = 0; tbi < PIZZA_TOPPINGS.length; tbi++) {
+        (function(topping) {
+          var isCurrent = recipe[cp.step] === topping;
+          toppingBtns.push(btn("t_" + topping, topping, isCurrent ? "panel-btn-active" : "",
+            { type: "TAP_PIZZA_TOPPING", topping: topping }));
+        })(PIZZA_TOPPINGS[tbi]);
+      }
+      els.push(e("div", { key: "toppings", className: "panel-btn-row" }, toppingBtns));
+      els.push(e("div", { key: "cancelrow", className: "panel-btn-row" },
+        btn("cancel", "CANCEL", "panel-btn-cancel", { type: "TAP_CANCEL" })
+      ));
+    }
+  }
+
+  if (els.length === 0) return null;
+  return e("div", { className: "interaction-panel" }, els);
+}
+
+function DanToken(props) {
+  var dan = props.dan;
+  var sz = 8;
+  var fromC = POSITION_COORDS[dan.currentSegmentFrom];
+  var toC = POSITION_COORDS[dan.currentSegmentTo];
+  var prog = dan.moving ? dan.moveProgress : 0;
+  var cx, cy;
+  if (dan.moving) {
+    cx = fromC.x + (toC.x - fromC.x) * prog;
+    cy = fromC.y + (toC.y - fromC.y) * prog;
+  } else {
+    var pc = POSITION_COORDS[dan.position];
+    cx = pc.x; cy = pc.y;
+  }
+  return e("div", {
+    className: "dan-token",
+    style: {
+      left: (cx - sz / 2) + "%", top: (cy - sz / 2) + "%",
+      width: sz + "%", height: sz + "%",
+      transition: "left 0.1s linear, top 0.1s linear"
+    }
+  }, "DAN");
+}
+
+function ShelfUI(props) {
+  var shelf = props.shelf;
+  var specItems = props.specItems;
+  var items = [];
+  var i;
+  for (i = 0; i < specItems.length; i++) {
+    var si = specItems[i];
+    var sec = Math.ceil(si.freshness / 1000);
+    items.push(e("span", { key: "s" + i, className: "shelf-item-spec" },
+      "? " + getDisplayName(si.itemName) + " " + sec + "m"));
+  }
+  var displayCount = Math.min(shelf.length, 6);
+  for (i = shelf.length - displayCount; i < shelf.length; i++) {
+    items.push(e("span", { key: "r" + shelf[i].itemId, className: "shelf-item" },
+      getDisplayName(shelf[i].name)));
+  }
+  return e("div", { className: "shelf-area", style: { left: "6%", top: "44%", width: "48%" } },
+    e("div", { className: "shelf-strip" },
+      e("span", { className: "shelf-lamp" }, "LAMP"),
+      items
+    )
+  );
+}
+
+function KitchenArea(props) {
+  var state = props.state;
+  var dd = props.debouncedDispatch;
+
+  function handleStationTap(position) {
+    dd({ type: "TAP_STATION", position: position });
+  }
+
+  var configKeys = Object.keys(STATION_CONFIGS);
+  var stationEls = [];
+  var i;
+  for (i = 0; i < configKeys.length; i++) {
+    var k = configKeys[i];
+    stationEls.push(e(StationBox, {
+      key: k, config: STATION_CONFIGS[k],
+      stationState: state.stations[k], onTap: handleStationTap
+    }));
+  }
+
+  return e("div", { className: "kitchen-area" },
+    /* Counter horizontal arm */
+    e("div", { className: "corridor-horizontal", style: {
+      left: "5%", top: "50%", width: "70%", height: "6%"
+    } }),
+    /* Counter vertical arm */
+    e("div", { className: "corridor-vertical", style: {
+      left: "56%", top: "50%", width: "6%", height: "45%"
+    } }),
+    stationEls,
+    e(DanToken, { dan: state.dan }),
+    e(HoldingBowlUI, { bowl: state.holdingBowl }),
+    e(ShelfUI, { shelf: state.shelf, specItems: state.speculative.shelfItems }),
+    e(InteractionPanel, { state: state, debouncedDispatch: dd }),
+    state.bowlFullFlash ? e("div", { className: "bowl-full-flash", style: {
+      left: "25%", top: "28%"
+    } }, "BOWL FULL") : null
+  );
+}
+
+function MeltdownOverlay(props) {
+  if (!props.active && !props.flash) return null;
+  var elements = [];
+  if (props.active) {
+    elements.push(e("div", { key: "border", className: "meltdown-overlay meltdown-overlay-active" }));
+  }
+  if (props.flash) {
+    elements.push(e("div", { key: "text", className: "meltdown-text" }, "MELTDOWN"));
+  }
+  return e(React.Fragment, null, elements);
+}
+
+function ShiftEndScreen(props) {
+  var state = props.state;
+  return e("div", { className: "shift-end-screen" },
+    e("div", { className: "shift-end-title" }, "SHIFT OVER"),
+    e("div", { className: "shift-end-stats" },
+      "Tickets cleared: " + state.ticketsCleared + "\n" +
+      "Tickets burned: " + state.ticketsBurned + "\n" +
+      "Tickets left on rail: " + state.tickets.length + "\n" +
+      "Speculative matches: " + state.speculativeMatches + "\n" +
+      "Voids: " + state.voidCount + "\n" +
+      "Meltdowns: " + state.meltdown.count
+    ),
+    e("div", { className: "shift-end-score" }, "Score: " + state.score),
+    e("button", {
+      className: "shift-end-btn",
+      onClick: props.onRestart,
+      onTouchStart: function(ev) { ev.preventDefault(); props.onRestart(); }
+    }, "Tap to restart")
+  );
+}
+
+/* ===== MAIN APP ===== */
+
+function App() {
+  var stateAndDispatch = React.useReducer(gameReducer, null, createInitialState);
+  var state = stateAndDispatch[0];
+  var dispatch = stateAndDispatch[1];
+  var lastTimestampRef = React.useRef(0);
+  var accumulatedTimeRef = React.useRef(0);
+  var rafRef = React.useRef(null);
+  var meltdownFlashTimerRef = React.useRef(null);
+  var bowlFlashTimerRef = React.useRef(null);
+  var lastTapRef = React.useRef(0);
+
+  function debouncedDispatch(action) {
+    var now = Date.now();
+    if (now - lastTapRef.current < DEBOUNCE_MS) return;
+    lastTapRef.current = now;
+    dispatch(action);
+  }
+
+  React.useEffect(function() {
+    if (state.phase !== "PLAYING" && state.phase !== "SHIFT_END_DELAY") {
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+      return;
+    }
+    lastTimestampRef.current = 0; accumulatedTimeRef.current = 0;
+    function gameTick(timestamp) {
+      if (lastTimestampRef.current === 0) lastTimestampRef.current = timestamp;
+      var delta = timestamp - lastTimestampRef.current;
+      lastTimestampRef.current = timestamp;
+      if (delta > 500) delta = 500;
+      accumulatedTimeRef.current += delta;
+      if (accumulatedTimeRef.current >= 100) {
+        dispatch({ type: "TICK", delta: accumulatedTimeRef.current });
+        accumulatedTimeRef.current = 0;
+      }
+      rafRef.current = requestAnimationFrame(gameTick);
+    }
+    rafRef.current = requestAnimationFrame(gameTick);
+    return function() { if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } };
+  }, [state.phase]);
+
+  React.useEffect(function() {
+    if (state.meltdownFlash) {
+      if (meltdownFlashTimerRef.current) clearTimeout(meltdownFlashTimerRef.current);
+      meltdownFlashTimerRef.current = setTimeout(function() { dispatch({ type: "CLEAR_MELTDOWN_FLASH" }); }, 1500);
+    }
+    return function() { if (meltdownFlashTimerRef.current) clearTimeout(meltdownFlashTimerRef.current); };
+  }, [state.meltdownFlash]);
+
+  React.useEffect(function() {
+    if (state.bowlFullFlash) {
+      if (bowlFlashTimerRef.current) clearTimeout(bowlFlashTimerRef.current);
+      bowlFlashTimerRef.current = setTimeout(function() { dispatch({ type: "CLEAR_BOWL_FLASH" }); }, 1500);
+    }
+    return function() { if (bowlFlashTimerRef.current) clearTimeout(bowlFlashTimerRef.current); };
+  }, [state.bowlFullFlash]);
+
+  function handleStart() { dispatch({ type: "START_GAME" }); }
+  function handleRestart() { dispatch({ type: "RESTART" }); }
+
+  if (state.phase === "TITLE") return e(TitleScreen, { onStart: handleStart });
+  if (state.phase === "SHIFT_END") return e(ShiftEndScreen, { state: state, onRestart: handleRestart });
+
+  return e("div", { style: { width: "100%", height: "100%" } },
+    e(HUD, { state: state }),
+    e("div", { className: "game-area" },
+      e(TicketRail, { state: state }),
+      e(KitchenArea, { state: state, dispatch: dispatch, debouncedDispatch: debouncedDispatch })
+    ),
+    e(MeltdownOverlay, { active: state.meltdown.recovering, flash: state.meltdownFlash })
+  );
+}
+
+/* ===== MOUNT ===== */
+var root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(e(App));
+</script>
+<!--
+NOTES.md entry for 0.2.1:
+- LAYOUT OVERHAUL: ticket rail moved to horizontal strip below HUD. Back wall stations (fryer, grill, oven) at top. Dan walks in middle zone between back wall and L-shaped counter. Counter renders as visible barrier. Shelf/pass on counter surface. Dan on correct side.
+- INTERACTION PANEL: full-width status bar at bottom of kitchen area. Shows station name, state, and large action buttons. Visible during Dan movement ("WALKING TO...").
+- PIZZA PREP: 6 topping buttons always visible (DOUGH, SAUCE, CHEESE, PEPPERONI, MUSHROOMS, GREEN PEPPERS -- placeholders). Recipe displayed above buttons with step highlighting. Wrong tap voids pizza + meltdown spike. Correct sequence sends pizza to oven.
+- GROUPER: "SEASON TO START" button -- massive, pulsing orange, unmissable.
+- BOWL: "SERVE FROM BOWL" button -- neon green, huge, shows serving count. Only appears when ticket needs fries and bowl has fries.
+- PLATE: single large green pulsing button showing item name ("PLATE BURGER" etc).
+- TICKET HIGHLIGHTING: matching ticket card pulses green when food is ready at Dan's station.
+- MELTDOWN REWORK: removed continuous pressure formula. Meter now only spikes from discrete failures (burn +15, void +10, wrong topping +8, missed shake/flip +5). Passive decay of -1.5/sec between events. Zero meltdowns achievable in a clean shift.
+- No new game mechanics. Speculative cooking, batch frying, burn windows, cancel mechanic, rush arc all unchanged.
+-->
+<!--
+NOTES.md entry for 0.2.0:
+- Corrected L-shaped layout: fryers (pos 0), grill (pos 1), pizza oven (pos 2), pizza prep (pos 3), salad prep (pos 4).
+- Stations no longer auto-cook. Player actively selects items and performs prep interactions.
+- Pizza: topping sequence at prep station (pos 3), auto-enters oven (pos 2). Dan must be at oven to plate.
+- Grill: burger (flip at 50%) and grouper sandwich (season before cook) added.
+- Fryer: fries, mushrooms, green beans, wings. Shake at 50% for all items. Batch frying for fries (x1/x3) with holding bowl and freshness decay.
+- Speculative cooking: player can cook without a matching ticket. Shelf items auto-match to incoming tickets. Unmatched items void after 15m.
+- Timer display: "m" suffix instead of "s". Underlying values unchanged.
+- New scoring: speculative match bonus (+3), void penalty (-8), stale fries served (-5), stale fry auto-void (-8), missed shake/flip (-3).
+- Cancel mechanic: CANCEL button and 2000ms auto-cancel on walk-away for pre-cook states (grouper, pizza prep).
+- Bowl overflow handling: excess servings lost, BOWL FULL flash, count visible on buttons.
+- Stale fries self-clean: 5000ms stale timer then auto-void. Bowl never permanently clogs.
+- Quality penalties travel with items through speculative matching.
+- No NPCs, no equipment degradation, no multiplayer, no Acts 2-3.
+-->
+</body>
+</html>
